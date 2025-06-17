@@ -63,12 +63,10 @@ pip install sentence-transformers
 MONGO_USER=your_username
 MONGO_PASSWD=your_password
 MONGO_HOST=localhost:27017
-MONGO_REPLSET=rs0  # 可选，如果使用副本集
 
 # Qdrant配置
 QDRANT_HOST=localhost
 QDRANT_PORT=6333
-QDRANT_COLLECTION=dialog_vectors
 
 # 模型配置
 EMBEDDING_MODEL_PATH=./model/BAAI/bge-large-zh-v1.5
@@ -80,6 +78,7 @@ OPENAI_API_KEY=your_api_key
 OPENAI_API_BASE=your_api_base  # 可选
 
 # 其他配置
+MONGO_REPLSET=''  # 可选，如果使用副本集
 MAX_RECENT_HISTORY=20  # 默认值
 CHUNK_SIZE=100  # 默认值
 MAX_CONCURRENT_ANALYSIS=3  # 默认值
@@ -150,15 +149,14 @@ src/
 - `MONGO_PASSWD`: MongoDB 密码
 - `MONGO_HOST`: MongoDB 主机地址
 - `QDRANT_HOST`: Qdrant 主机地址
-- `QDRANT_COLLECTION`: Qdrant 集合名称
 - `EMBEDDING_MODEL_PATH`: 用于生成文本向量的模型路径
+- `EMBEDDING_DIM`: 向量维度
 - `OPENAI_API_KEY`: OpenAI API 密钥
 - `OPENAI_API_BASE`: OpenAI API 地址
 
 ### 可选配置
 - `MONGO_REPLSET`: MongoDB 副本集名称（如果使用副本集）
 - `QDRANT_PORT`: Qdrant 端口号（默认：6333）
-- `EMBEDDING_DIM`: 向量维度（默认：768）
 - `LLM_MODEL`: LLM 模型名称（默认：qwen-plus-latest）
 - `MAX_RECENT_HISTORY`: 保存在主表中的最近对话数量（默认：20）
 - `CHUNK_SIZE`: 每个分块中存储的对话数量（默认：100）

@@ -63,12 +63,10 @@ Note: The default embedding model is `BAAI/bge-large-zh-v1.5`. You can change it
 MONGO_USER=your_username
 MONGO_PASSWD=your_password
 MONGO_HOST=localhost:27017
-MONGO_REPLSET=rs0  # Optional, if using replica set
 
 # Qdrant Configuration
 QDRANT_HOST=localhost
 QDRANT_PORT=6333
-QDRANT_COLLECTION=dialog_vectors
 
 # Model Configuration
 EMBEDDING_MODEL_PATH=./model/BAAI/bge-large-zh-v1.5
@@ -79,6 +77,7 @@ LLM_MODEL=qwen-plus-latest  # Default value
 OPENAI_API_KEY=your_api_key
 
 # Other Configuration
+MONGO_REPLSET=''  # Optional, if using replica set
 MAX_RECENT_HISTORY=20  # Default value
 CHUNK_SIZE=100  # Default value
 MAX_CONCURRENT_ANALYSIS=3  # Default value
@@ -149,15 +148,14 @@ src/
 - `MONGO_PASSWD`: MongoDB password
 - `MONGO_HOST`: MongoDB host address
 - `QDRANT_HOST`: Qdrant host address
-- `QDRANT_COLLECTION`: Qdrant collection name
 - `EMBEDDING_MODEL_PATH`: Model path for generating text vectors
+- `EMBEDDING_DIM`: Vector dimension
 - `OPENAI_API_KEY`: OpenAI API key
 - `OPENAI_API_BASE`: OpenAI API Base
 
 ### Optional Configuration
 - `MONGO_REPLSET`: MongoDB replica set name (if using replica set)
 - `QDRANT_PORT`: Qdrant port number (default: 6333)
-- `EMBEDDING_DIM`: Vector dimension (default: 768)
 - `LLM_MODEL`: LLM model name (default: qwen-plus-latest)
 - `MAX_RECENT_HISTORY`: Number of recent conversations kept in main table (default: 20)
 - `CHUNK_SIZE`: Number of conversations stored in each chunk (default: 100)
