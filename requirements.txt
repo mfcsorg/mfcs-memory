@@ -1,0 +1,5 @@
+pymongo
+python-dotenv
+sentence-transformers
+qdrant-client
+openai==1.86.0

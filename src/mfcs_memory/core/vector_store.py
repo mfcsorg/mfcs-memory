@@ -1,0 +1,221 @@
+"""
+Vector Store Module - Responsible for handling vector storage and retrieval
+"""
+
+import uuid
+from typing import Dict, List, Optional
+from datetime import datetime, timezone
+from qdrant_client.async_qdrant_client import AsyncQdrantClient
+from qdrant_client.models import PointStruct, VectorParams, Distance
+import logging
+import asyncio
+
+from ..utils.config import Config
+from .session_manager import SessionManager
+from .base import ManagerBase
+
+logger = logging.getLogger(__name__)
+
+class VectorStore(ManagerBase):
+    def __init__(self, config: Config, session_manager: SessionManager):
+        super().__init__(config)
+        self.session_manager = session_manager
+        self.qdrant_client = AsyncQdrantClient(config.qdrant_host, port=config.qdrant_port)
+        self.qdrant_collection = 'memory_dialog_history'
+        self._initialized = False
+        self._init_task = asyncio.create_task(self.initialize())
+
+    async def ensure_initialized(self) -> None:
+        """Ensure vector store is initialized"""
+        if not self._initialized:
+            await self._init_task
+            if not self._initialized:
+                raise RuntimeError("Vector store initialization failed")
+
+    async def initialize(self) -> None:
+        """Initialize vector store
+        
+        This method needs to be called immediately after creating a VectorStore instance
+        """
+        if not self._initialized:
+            try:
+                # Initialize collection
+                await self._init_collection()
+                self._initialized = True
+                logger.info("Vector store initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize vector store: {str(e)}")
+                raise
+
+    async def _init_collection(self) -> None:
+        """Initialize vector collection"""
+        collections = await self.qdrant_client.get_collections()
+        
+        if self.qdrant_collection not in [c.name for c in collections.collections]:
+            await self.qdrant_client.recreate_collection(
+                collection_name=self.qdrant_collection,
+                vectors_config=VectorParams(
+                    size=self.config.embedding_dim,
+                    distance=Distance.COSINE
+                )
+            )
+            logger.info(f"Created new collection: {self.qdrant_collection}")
+
+    async def reset(self) -> bool:
+        """Clear all vector data
+        
+        Returns:
+            bool: Whether the operation was successful
+        """
+        await self.ensure_initialized()
+        try:
+            # Delete and recreate collection
+            await self.qdrant_client.recreate_collection(
+                collection_name=self.qdrant_collection,
+                vectors_config=VectorParams(
+                    size=self.config.embedding_dim,
+                    distance=Distance.COSINE
+                )
+            )
+            logger.info(f"Reset all vector data in collection: {self.qdrant_collection}")
+            return True
+        except Exception as e:
+            logger.error(f"Error resetting vector data: {str(e)}")
+            return False
+
+    async def delete_user_dialogs(self, user_id: str) -> bool:
+        """Delete all dialog vectors related to a user"""
+        await self.ensure_initialized()
+        try:
+            await self.qdrant_client.delete(
+                collection_name=self.qdrant_collection,
+                points_selector={"filter": {"must": [{"key": "user_id", "match": {"value": user_id}}]}}
+            )
+            logger.info(f"Deleted all data for user {user_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting user data: {str(e)}")
+            return False
+
+    async def search_dialog_with_chunk(self, session_id: str, query: str, top_k: int = 2) -> List[Dict]:
+        """Search for relevant historical dialogs, supporting chunked storage
+        
+        Args:
+            session_id: Session ID
+            query: Query text
+            top_k: Number of relevant dialogs to return
+            
+        Returns:
+            List[Dict]: List of relevant dialogs
+        """
+        await self.ensure_initialized()
+        # Generate embedding vector for query text
+        query_embedding = self.embedding_model.encode(query)
+        
+        # Search in Qdrant
+        results = await self.qdrant_client.search(
+            collection_name=self.qdrant_collection,
+            query_vector=query_embedding,
+            limit=top_k
+        )
+        
+        relevant_dialogs = []
+        for hit in results:
+            session_id = hit.payload["session_id"]
+            chunk_id = hit.payload.get("chunk_id")
+            message_index = hit.payload["message_index"]
+            is_in_chunk = hit.payload.get("is_in_chunk", False)
+            
+            try:
+                if is_in_chunk and chunk_id:
+                    # Search in chunk table
+                    chunk = await self.session_manager.get_dialog_chunk(chunk_id)
+                    if chunk and "dialogs" in chunk and message_index < len(chunk["dialogs"]):
+                        relevant_dialogs.append(chunk["dialogs"][message_index])
+                else:
+                    # Search in main table
+                    session = await self.session_manager.get_session(session_id)
+                    if session and "dialog_history" in session and message_index < len(session["dialog_history"]):
+                        relevant_dialogs.append(session["dialog_history"][message_index])
+            except Exception as e:
+                logger.error(f"Error querying historical records: {str(e)}")
+                continue
+                
+        return relevant_dialogs
+
+    async def save_dialog_with_chunk(self, session_id: str, user: str, assistant: str, user_id: Optional[str] = None) -> None:
+        """Save dialog to vector store, supporting chunked storage
+        
+        Args:
+            session_id: Session ID
+            user: User input
+            assistant: Assistant response
+            user_id: User ID
+        """
+        await self.ensure_initialized()
+        try:
+            # Get session information
+            session = await self.session_manager.get_session(session_id)
+            if not session:
+                raise ValueError(f"Session {session_id} not found")
+            
+            # Create new chunk when dialog history exceeds MAX_RECENT_HISTORY
+            if len(session["dialog_history"]) > self.config.max_recent_history:
+                logger.info(f"Dialog history exceeds {self.config.max_recent_history} rounds, creating new chunk...")
+                # Create new chunk
+                chunk_id = await self.session_manager.create_dialog_chunk(session_id)
+                if not chunk_id:
+                    logger.warning("Warning: Failed to create chunk")
+                    return
+                
+                # Update session chunk information
+                result = await self.session_manager.update_session_chunks(
+                    session_id,
+                    chunk_id,
+                    session["dialog_history"][-self.config.max_recent_history:]
+                )
+                
+                if not result:
+                    logger.warning("Warning: Failed to update chunk information")
+                    return
+                    
+                session = result
+                logger.info(f"Current number of chunks: {len(session['history_chunks'])}")
+            
+            # Generate embedding vector for dialog text
+            dialog_text = f"User: {user}\nAssistant: {assistant}"
+            embedding = self.embedding_model.encode(dialog_text)
+            
+            # Calculate message index (position of current dialog in history)
+            message_index = len(session["dialog_history"]) - 1
+            
+            point_id = uuid.uuid4().hex
+            
+            # Get current dialog location (chunk or main table)
+            current_chunk_id = None
+            if len(session["dialog_history"]) > self.config.max_recent_history:
+                current_chunk_id = session["history_chunks"][-1] if session.get("history_chunks") else None
+            
+            await self.qdrant_client.upsert(
+                collection_name=self.qdrant_collection,
+                points=[
+                    PointStruct(
+                        id=point_id,
+                        vector=embedding,
+                        payload={
+                            "session_id": str(session["_id"]),
+                            "user_id": user_id,
+                            "chunk_id": str(current_chunk_id) if current_chunk_id else None,
+                            "message_index": message_index,
+                            "short_text": dialog_text,
+                            "is_in_chunk": current_chunk_id is not None,
+                            "created_at": datetime.now(timezone.utc).isoformat()
+                        }
+                    )
+                ]
+            )
+            logger.info(f"Saved dialog to vector store with point_id: {point_id}")
+            
+        except Exception as e:
+            logger.error(f"Error saving dialog to chunk: {str(e)}")
+            raise

@@ -1,0 +1,26 @@
+# OpenAI
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_API_BASE=your_openai_api_base
+LLM_MODEL=model_name
+
+# MongoDB 配置
+MONGO_HOST=127.0.0.1:27017
+MONGO_USER=root
+MONGO_PASSWD=root
+
+# Qdrant 配置
+QDRANT_HOST=127.0.0.1
+QDRANT_PORT=6333
+
+# 嵌入模型配置
+EMBEDDING_MODEL_PATH=./model/BAAI/bge-large-zh-v1.5
+EMBEDDING_DIM=1024
+
+# 业务参数
+CHUNK_SIZE=100
+MAX_RECENT_HISTORY=20
+MAX_CONCURRENT_ANALYSIS=3
+
+# model 目录说明
+
+本目录专门用于存放 embedding（文本向量化）模型及其相关文件。
