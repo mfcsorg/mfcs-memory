@@ -127,16 +127,16 @@ if __name__ == "__main__":
 src/
 ├── mfcs_memory/
 │   ├── core/
+│   │   ├── base.py              # Base
 │   │   ├── memory_manager.py    # Memory Manager
 │   │   ├── session_manager.py   # Session Manager
 │   │   ├── vector_store.py      # Vector Store
 │   │   └── conversation_analyzer.py  # Conversation Analyzer
 │   ├── utils/
-│   │   ├── config.py           # Configuration Management
-│   │   └── logger.py           # Logging Utilities
+│   │   └── config.py           # Configuration Management
 │   └── __init__.py
-├── example/                     # Example Code
-├── tests/                      # Test Files
+├── example/                    # Example Code
+├── model/                      # model Directory
 ├── setup.py                    # Installation Configuration
 └── README.md                   # Project Documentation
 ```

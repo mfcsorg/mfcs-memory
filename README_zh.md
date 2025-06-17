@@ -128,16 +128,16 @@ if __name__ == "__main__":
 src/
 ├── mfcs_memory/
 │   ├── core/
+│   │   ├── base.py              # 基础
 │   │   ├── memory_manager.py    # 内存管理器
 │   │   ├── session_manager.py   # 会话管理器
 │   │   ├── vector_store.py      # 向量存储
 │   │   └── conversation_analyzer.py  # 对话分析器
 │   ├── utils/
-│   │   ├── config.py           # 配置管理
-│   │   └── logger.py           # 日志工具
+│   │   └── config.py           # 配置管理
 │   └── __init__.py
-├── example/                     # 示例代码
-├── tests/                      # 测试文件
+├── example/                    # 示例代码
+├── model/                      # 模型目录
 ├── setup.py                    # 安装配置
 └── README.md                   # 项目说明
 ```
