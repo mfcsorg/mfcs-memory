@@ -3,9 +3,8 @@ Vector Store Module - Responsible for handling vector storage and retrieval
 """
 
 import uuid
-from typing import Dict, List, Optional
+from typing import ClassVar, Dict, List, Optional
 from datetime import datetime, timezone
-from qdrant_client.async_qdrant_client import AsyncQdrantClient
 from qdrant_client.models import PointStruct, VectorParams, Distance
 import logging
 import asyncio
@@ -17,42 +16,22 @@ from .base import ManagerBase
 logger = logging.getLogger(__name__)
 
 class VectorStore(ManagerBase):
+    _initialized: ClassVar[bool] = False
+    qdrant_collection: ClassVar[str] = 'memory_dialog_history'
+
     def __init__(self, config: Config, session_manager: SessionManager):
         super().__init__(config)
         self.session_manager = session_manager
-        self.qdrant_client = AsyncQdrantClient(config.qdrant_host, port=config.qdrant_port)
-        self.qdrant_collection = 'memory_dialog_history'
-        self._initialized = False
-        self._init_task = asyncio.create_task(self.initialize())
+        self._initialize()
 
-    async def ensure_initialized(self) -> None:
-        """Ensure vector store is initialized"""
-        if not self._initialized:
-            await self._init_task
-            if not self._initialized:
-                raise RuntimeError("Vector store initialization failed")
-
-    async def initialize(self) -> None:
-        """Initialize vector store
-        
-        This method needs to be called immediately after creating a VectorStore instance
-        """
-        if not self._initialized:
-            try:
-                # Initialize collection
-                await self._init_collection()
-                self._initialized = True
-                logger.info("Vector store initialized successfully")
-            except Exception as e:
-                logger.error(f"Failed to initialize vector store: {str(e)}")
-                raise
-
-    async def _init_collection(self) -> None:
+    def _initialize(self) -> None:
         """Initialize vector collection"""
-        collections = await self.qdrant_client.get_collections()
-        
+        if self._initialized:
+            return
+
+        collections = self.qdrant_client.get_collections()
         if self.qdrant_collection not in [c.name for c in collections.collections]:
-            await self.qdrant_client.recreate_collection(
+            self.qdrant_client.recreate_collection(
                 collection_name=self.qdrant_collection,
                 vectors_config=VectorParams(
                     size=self.config.embedding_dim,
@@ -60,6 +39,7 @@ class VectorStore(ManagerBase):
                 )
             )
             logger.info(f"Created new collection: {self.qdrant_collection}")
+        VectorStore._initialized = True
 
     async def reset(self) -> bool:
         """Clear all vector data
@@ -67,10 +47,10 @@ class VectorStore(ManagerBase):
         Returns:
             bool: Whether the operation was successful
         """
-        await self.ensure_initialized()
         try:
             # Delete and recreate collection
-            await self.qdrant_client.recreate_collection(
+            await asyncio.to_thread(
+                self.qdrant_client.recreate_collection,
                 collection_name=self.qdrant_collection,
                 vectors_config=VectorParams(
                     size=self.config.embedding_dim,
@@ -85,9 +65,9 @@ class VectorStore(ManagerBase):
 
     async def delete_user_dialogs(self, user_id: str) -> bool:
         """Delete all dialog vectors related to a user"""
-        await self.ensure_initialized()
         try:
-            await self.qdrant_client.delete(
+            await asyncio.to_thread(
+                self.qdrant_client.delete,
                 collection_name=self.qdrant_collection,
                 points_selector={"filter": {"must": [{"key": "user_id", "match": {"value": user_id}}]}}
             )
@@ -108,12 +88,11 @@ class VectorStore(ManagerBase):
         Returns:
             List[Dict]: List of relevant dialogs
         """
-        await self.ensure_initialized()
         # Generate embedding vector for query text
         query_embedding = self.embedding_model.encode(query)
-        
         # Search in Qdrant
-        results = await self.qdrant_client.search(
+        results = await asyncio.to_thread(
+            self.qdrant_client.search,
             collection_name=self.qdrant_collection,
             query_vector=query_embedding,
             limit=top_k
@@ -152,7 +131,6 @@ class VectorStore(ManagerBase):
             assistant: Assistant response
             user_id: User ID
         """
-        await self.ensure_initialized()
         try:
             # Get session information
             session = await self.session_manager.get_session(session_id)
@@ -196,7 +174,8 @@ class VectorStore(ManagerBase):
             if len(session["dialog_history"]) > self.config.max_recent_history:
                 current_chunk_id = session["history_chunks"][-1] if session.get("history_chunks") else None
             
-            await self.qdrant_client.upsert(
+            await asyncio.to_thread(
+                self.qdrant_client.upsert,
                 collection_name=self.qdrant_collection,
                 points=[
                     PointStruct(

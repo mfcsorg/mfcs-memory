@@ -6,12 +6,22 @@ MFCS Memory is an intelligent conversation memory management system that helps A
 
 ## Key Features
 
-- Intelligent Conversation Memory: Automatically analyzes and summarizes user characteristics and preferences
-- Vector Storage: Uses Qdrant for efficient similar conversation retrieval
-- Session Management: Supports multi-user, multi-session management
-- Automatic Chunking: Automatically creates chunks when conversation history exceeds threshold
-- Async Support: All operations support asynchronous execution
-- Extensibility: Modular design, easy to extend and customize
+- **Intelligent Conversation Memory**: Automatically analyzes and summarizes user characteristics and preferences
+- **Vector Storage**: Uses Qdrant for efficient similar conversation retrieval
+- **Session Management**: Supports multi-user, multi-session management
+- **Automatic Chunking**: Automatically creates chunks when conversation history exceeds threshold
+- **Async Support**: All operations support asynchronous execution
+- **Extensibility**: Modular design, easy to extend and customize
+- **Automatic LLM-based Analysis**: User memory and conversation summary are updated automatically at configurable intervals
+
+## Core Modules
+
+- `core/base.py`: Base manager, handles all shared connections (MongoDB, Qdrant, embedding model)
+- `core/conversation_analyzer.py`: Analyzes conversation content and user profile using LLM (OpenAI API)
+- `core/memory_manager.py`: Main entry for memory management, orchestrates all modules and async tasks
+- `core/session_manager.py`: Handles session creation, update, chunking, and analysis task management
+- `core/vector_store.py`: Handles vector storage, retrieval, and chunked dialog management
+- `utils/config.py`: Loads and validates all configuration from environment variables
 
 ## Core Features
 
@@ -20,24 +30,23 @@ MFCS Memory is an intelligent conversation memory management system that helps A
 1. **get(user_id: str, query: Optional[str] = None, top_k: int = 2) -> str**
    - Get current session information for specified user
    - Includes conversation summary and user memory summary
-   - Supports query-based relevant historical conversation retrieval
+   - Supports query-based relevant historical conversation retrieval (vector search)
    - Returns formatted memory information
 
 2. **update(user_id: str, user_input: str, assistant_response: str) -> bool**
    - Automatically gets or creates current session for user
    - Updates conversation history
-   - Automatically updates user memory summary every 3 rounds
-   - Automatically updates session summary every 5 rounds
-   - Automatically handles conversation chunking
+   - Automatically updates user memory summary every 3 rounds (LLM analysis)
+   - Automatically updates session summary every 5 rounds (LLM analysis)
+   - Automatically handles conversation chunking and vector storage
+   - All analysis tasks run asynchronously and are recoverable on restart
 
 3. **delete(user_id: str) -> bool**
-   - Deletes all data for specified user
-   - Includes session data and vector storage data
+   - Deletes all data for specified user (session + vector store)
    - Returns whether operation was successful
 
 4. **reset() -> bool**
-   - Resets all user records
-   - Clears all session data and vector storage
+   - Resets all user records (clears all session and vector data)
    - Returns whether operation was successful
 
 ## Installation
@@ -52,11 +61,11 @@ pip install mfcs-memory
 pip install sentence-transformers
 ```
 
-Note: The default embedding model is `BAAI/bge-large-zh-v1.5`. You can change it in the configuration.
+> **Note:** The default embedding model is `BAAI/bge-large-zh-v1.5`. You can change it in the configuration.
 
 ## Quick Start
 
-1. First, create a `.env` file and configure necessary environment variables:
+1. Create a `.env` file and configure necessary environment variables:
 
 ```env
 # MongoDB Configuration
@@ -75,6 +84,7 @@ LLM_MODEL=qwen-plus-latest  # Default value
 
 # OpenAI Configuration
 OPENAI_API_KEY=your_api_key
+OPENAI_API_BASE=your_api_base  # Optional
 
 # Other Configuration
 MONGO_REPLSET=''  # Optional, if using replica set
@@ -127,18 +137,21 @@ if __name__ == "__main__":
 src/
 ├── mfcs_memory/
 │   ├── core/
-│   │   ├── base.py              # Base
-│   │   ├── memory_manager.py    # Memory Manager
-│   │   ├── session_manager.py   # Session Manager
-│   │   ├── vector_store.py      # Vector Store
-│   │   └── conversation_analyzer.py  # Conversation Analyzer
+│   │   ├── base.py                # Base manager (connections)
+│   │   ├── memory_manager.py      # Memory manager (main logic)
+│   │   ├── session_manager.py     # Session manager (session, chunk, task)
+│   │   ├── vector_store.py        # Vector store (Qdrant)
+│   │   ├── conversation_analyzer.py # Conversation analyzer (LLM)
+│   │   └── __init__.py
 │   ├── utils/
-│   │   └── config.py           # Configuration Management
+│   │   ├── config.py              # Configuration management
+│   │   └── __init__.py
 │   └── __init__.py
-├── example/                    # Example Code
-├── model/                      # model Directory
-├── setup.py                    # Installation Configuration
-└── README.md                   # Project Documentation
+├── example/                       # Example code
+├── model/                         # Model directory
+├── setup.py                       # Installation config
+├── .env.example                   # Environment file example
+└── README.md                      # Project documentation
 ```
 
 ## Configuration Guide
@@ -151,12 +164,12 @@ src/
 - `EMBEDDING_MODEL_PATH`: Model path for generating text vectors
 - `EMBEDDING_DIM`: Vector dimension
 - `OPENAI_API_KEY`: OpenAI API key
-- `OPENAI_API_BASE`: OpenAI API Base
+- `OPENAI_API_BASE`: OpenAI API base URL (Optional)
+- `LLM_MODEL`: LLM model name
 
 ### Optional Configuration
 - `MONGO_REPLSET`: MongoDB replica set name (if using replica set)
 - `QDRANT_PORT`: Qdrant port number (default: 6333)
-- `LLM_MODEL`: LLM model name (default: qwen-plus-latest)
 - `MAX_RECENT_HISTORY`: Number of recent conversations kept in main table (default: 20)
 - `CHUNK_SIZE`: Number of conversations stored in each chunk (default: 100)
 - `MAX_CONCURRENT_ANALYSIS`: Maximum number of concurrent analysis tasks (default: 3)
@@ -167,4 +180,4 @@ Issues and Pull Requests are welcome!
 
 ## License
 
-MIT License 
+MIT License

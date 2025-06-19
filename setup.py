@@ -4,12 +4,19 @@ MFCS Memory - A smart conversation memory management system
 
 from setuptools import setup, find_packages
 
+# Read version from __init__.py
+with open("src/mfcs_memory/__init__.py", "r", encoding="utf-8") as f:
+    for line in f:
+        if line.startswith("__version__"):
+            VERSION = line.split("=")[1].strip().strip('"')
+            break
+
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
     name="mfcs-memory",
-    version="0.1.0",
+    version=VERSION,
     author="shideqin",
     author_email="shisdq@gmail.com",
     description="A smart conversation memory management system",

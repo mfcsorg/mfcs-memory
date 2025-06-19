@@ -1,0 +1,12 @@
+# Include all Python source files
+include src/mfcs_memory/*.py
+include src/mfcs_memory/*/*.py
+
+# Include README files
+include README.md
+
+# Include license file (if any)
+# include LICENSE
+
+# Include model directory
+include model/README.md 

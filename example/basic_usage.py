@@ -9,34 +9,11 @@ from mfcs_memory.utils.config import Config
 from mfcs_memory.core.memory_manager import MemoryManager
 
 async def main():
-    # Load environment variables
-    load_dotenv()
-    
-    # Create configuration
-    config = Config(
-        # MongoDB configuration
-        mongo_user=os.getenv("MONGO_USER"),
-        mongo_passwd=os.getenv("MONGO_PASSWD"),
-        mongo_host=os.getenv("MONGO_HOST"),
-        mongo_replset=os.getenv("MONGO_REPLSET"),
-        
-        # Qdrant configuration
-        qdrant_host=os.getenv("QDRANT_HOST"),
-        qdrant_port=int(os.getenv("QDRANT_PORT")),
-        
-        # Model configuration
-        embedding_model_path=os.getenv("EMBEDDING_MODEL_PATH"),
-        embedding_dim=int(os.getenv("EMBEDDING_DIM")),
-        
-        # OpenAI configuration
-        openai_api_key=os.getenv("OPENAI_API_KEY"),
-        openai_api_base=os.getenv("OPENAI_API_BASE"),
-        llm_model=os.getenv("LLM_MODEL")
-    )
-    
+    config = Config.from_env()
+
     # Initialize memory manager
     memory_manager = MemoryManager(config)
-    
+
     # Simulate conversation
     user_id = "test_user_001"
     dialogs = [
@@ -46,7 +23,7 @@ async def main():
         ("What is Python's package manager?", "Python's main package manager is pip, used for installing and managing Python packages. Use 'pip install' to install packages and 'pip list' to view installed packages."),
         ("What is a virtual environment?", "A virtual environment is an isolated workspace for Python projects, helping avoid package version conflicts between different projects. Use venv or virtualenv to create virtual environments.")
     ]
-    
+
     # Save conversations
     for user_input, assistant_response in dialogs:
         # Update conversation
@@ -56,7 +33,7 @@ async def main():
             assistant_response
         )
         print(f"Saving conversation: {user_input[:20]}...")
-    
+
     # Get memory information
     query = "How to start Python programming?"
     memory_info = await memory_manager.get(
@@ -64,7 +41,7 @@ async def main():
         query=query,
         top_k=2
     )
-    
+
     print("\nMemory Information:")
     print(memory_info)
 

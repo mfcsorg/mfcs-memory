@@ -26,7 +26,7 @@ class Config:
     embedding_model_path: str
     embedding_dim: int
     openai_api_key: str
-    openai_api_base: str
+    openai_api_base: Optional[str] = None
     llm_model: str
     
     # Optional configurations
@@ -108,7 +108,7 @@ class Config:
 
             # OpenAI configuration
             openai_api_key=os.getenv("OPENAI_API_KEY"),
-            openai_api_base=os.getenv("OPENAI_API_BASE"),
+            openai_api_base=os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1"),
             llm_model=os.getenv("LLM_MODEL"),
 
             # Other configuration

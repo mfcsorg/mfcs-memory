@@ -4,6 +4,7 @@ Conversation Analyzer Module - Responsible for analyzing conversation content an
 
 import logging
 from typing import Dict, List
+from openai import AsyncOpenAI
 
 from ..utils.config import Config
 from .base import ManagerBase
@@ -14,16 +15,23 @@ class ConversationAnalyzer(ManagerBase):
     def __init__(self, config: Config):
         super().__init__(config)
 
+        # Initialize OpenAI client
+        self.openai_client = AsyncOpenAI(
+            api_key=self.config.openai_api_key,
+            base_url=self.config.openai_api_base
+        )
+        logger.info("OpenAI connection initialized successfully")
+
     async def analyze_user_profile(self, dialog_history: List[Dict], n: int = 5) -> str:
         """Analyze user profile
         
         Args:
             dialog_history: List of conversation history records
+            n: Number of recent conversations to process
             
         Returns:
             str: User profile analysis result
         """
-        await self.ensure_initialized()
         recent_history = dialog_history[-n:]
         history_text = "\n".join([f"User: {d['user']}\nAssistant: {d['assistant']}" for d in recent_history])
         
@@ -50,7 +58,7 @@ Conversation History:
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            logger.error(f"Error analyzing user profile: {str(e)}")
+            logger.error(f"Error analyzing user profile: {str(e)}", exc_info=True)
             return ""
 
     async def update_conversation_summary(self, session: Dict, n: int = 5) -> str:
@@ -63,7 +71,6 @@ Conversation History:
         Returns:
             str: Updated conversation summary
         """
-        await self.ensure_initialized()
         logger.info(f"\nStarting conversation summary update, session_id: {session.get('_id')}")
         if not session:
             logger.error("Cannot update conversation summary: session does not exist")
@@ -108,5 +115,5 @@ New Conversations:
             logger.info(f"Generated summary content:\n{new_summary}")
             return new_summary
         except Exception as e:
-            logger.error(f"Error generating summary: {str(e)}")
+            logger.error(f"Error generating summary: {str(e)}", exc_info=True)
             return ""
