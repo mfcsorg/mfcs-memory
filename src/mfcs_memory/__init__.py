@@ -3,7 +3,7 @@ MFCS Memory - A smart conversation memory management system
 """
 
 # Version information
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 # Export all required classes
 from .utils.config import Config

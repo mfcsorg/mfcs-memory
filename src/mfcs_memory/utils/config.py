@@ -26,10 +26,10 @@ class Config:
     embedding_model_path: str
     embedding_dim: int
     openai_api_key: str
-    openai_api_base: Optional[str] = None
     llm_model: str
     
     # Optional configurations
+    openai_api_base: Optional[str] = None
     mongo_replset: Optional[str] = None
     qdrant_port: int = 6333
     max_recent_history: int = 20  # Number of recent conversations to keep in main table
