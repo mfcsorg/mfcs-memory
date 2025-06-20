@@ -1,5 +1,5 @@
 pymongo
 python-dotenv
-sentence-transformers
+sentence-transformers==2.2.2
 qdrant-client
 openai==1.86.0

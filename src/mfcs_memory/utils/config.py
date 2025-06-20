@@ -22,7 +22,7 @@ class Config:
     mongo_user: str
     mongo_passwd: str
     mongo_host: str
-    qdrant_host: str
+    qdrant_url: str
     embedding_model_path: str
     embedding_dim: int
     openai_api_key: str
@@ -43,7 +43,7 @@ class Config:
             "MongoDB User": self.mongo_user,
             "MongoDB Password": self.mongo_passwd,
             "MongoDB Host": self.mongo_host,
-            "Qdrant Host": self.qdrant_host,
+            "Qdrant URL": self.qdrant_url,
             "Embedding Model Path": self.embedding_model_path,
             "Embedding Dimension": self.embedding_dim,
             "OpenAI API Key": self.openai_api_key,
@@ -61,10 +61,8 @@ class Config:
             raise ValueError("MongoDB password is required")
         if self.mongo_host is None:
             raise ValueError("MongoDB host is required")
-        if self.qdrant_host is None:
-            raise ValueError("Qdrant host is required")
-        if self.qdrant_port <= 0:
-            raise ValueError("Qdrant port must be positive")
+        if self.qdrant_url is None:
+            raise ValueError("Qdrant URL is required")
         if self.embedding_model_path is None:
             raise ValueError("Embedding model path is required")
         if self.embedding_dim <= 0:
@@ -99,8 +97,7 @@ class Config:
             mongo_host=os.getenv("MONGO_HOST"),
 
             # Qdrant configuration
-            qdrant_host=os.getenv("QDRANT_HOST"),
-            qdrant_port=int(os.getenv("QDRANT_PORT")),
+            qdrant_url=os.getenv("QDRANT_URL"),
 
             # Model configuration
             embedding_model_path=os.getenv("EMBEDDING_MODEL_PATH"),

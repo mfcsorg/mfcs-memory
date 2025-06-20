@@ -74,8 +74,7 @@ MONGO_PASSWD=your_password
 MONGO_HOST=localhost:27017
 
 # Qdrant配置
-QDRANT_HOST=localhost
-QDRANT_PORT=6333
+QDRANT_URL=http://127.0.0.1:6333
 
 # 模型配置
 EMBEDDING_MODEL_PATH=./model/BAAI/bge-large-zh-v1.5
@@ -160,7 +159,7 @@ src/
 - `MONGO_USER`：MongoDB用户名
 - `MONGO_PASSWD`：MongoDB密码
 - `MONGO_HOST`：MongoDB主机地址
-- `QDRANT_HOST`：Qdrant主机地址
+- `QDRANT_URL`：Qdrant连接地址
 - `EMBEDDING_MODEL_PATH`：用于生成文本向量的模型路径
 - `EMBEDDING_DIM`：向量维度
 - `OPENAI_API_KEY`：OpenAI API密钥

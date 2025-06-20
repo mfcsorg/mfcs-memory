@@ -49,10 +49,7 @@ class ManagerBase:
             logger.info("MongoDB connection initialized successfully")
             
             # Initialize Qdrant connection
-            ManagerBase.qdrant_client = QdrantClient(
-                self.config.qdrant_host,
-                port=self.config.qdrant_port
-            )
+            ManagerBase.qdrant_client = QdrantClient(url=self.config.qdrant_url)
             logger.info("Qdrant connection initialized successfully")
             
             # Initialize embedding model

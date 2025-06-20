@@ -74,8 +74,7 @@ MONGO_PASSWD=your_password
 MONGO_HOST=localhost:27017
 
 # Qdrant Configuration
-QDRANT_HOST=localhost
-QDRANT_PORT=6333
+QDRANT_URL=http://127.0.0.1:6333
 
 # Model Configuration
 EMBEDDING_MODEL_PATH=./model/BAAI/bge-large-zh-v1.5
@@ -160,7 +159,7 @@ src/
 - `MONGO_USER`: MongoDB username
 - `MONGO_PASSWD`: MongoDB password
 - `MONGO_HOST`: MongoDB host address
-- `QDRANT_HOST`: Qdrant host address
+- `QDRANT_URL`: Qdrant url address
 - `EMBEDDING_MODEL_PATH`: Model path for generating text vectors
 - `EMBEDDING_DIM`: Vector dimension
 - `OPENAI_API_KEY`: OpenAI API key
