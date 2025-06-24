@@ -22,24 +22,24 @@ class SessionManager(ManagerBase):
     
     def __init__(self, config: Config):
         """Initialize session manager
-        
+
         Args:
             config: Configuration object
         """
         super().__init__(config)
         self.mongo_db = 'mfcs_memory'
 
-    async def create_session(self, user_id: str) -> Dict:
+    async def create_session(self, memory_id: str) -> Dict:
         """Create new session"""
         session = await asyncio.to_thread(
             self.mongo_client[self.mongo_db]['memory_sessions'].find_one,
-            {"user_id": user_id}
+            {"memory_id": memory_id}
         )
         if session:
             return session
 
         session = {
-            "user_id": user_id,
+            "memory_id": memory_id,
             "user_memory_summary": "",
             "dialog_history": [],
             "conversation_summary": "",
@@ -52,7 +52,7 @@ class SessionManager(ManagerBase):
             session
         )
         session["_id"] = result.inserted_id
-        logger.info(f"Created new session for user {user_id}")
+        logger.info(f"Created new session for memory_id {memory_id}")
         return session
 
     async def get_session(self, session_id: str) -> Optional[Dict]:
@@ -73,22 +73,22 @@ class SessionManager(ManagerBase):
         )
         logger.info(f"Saved session {session['_id']}")
 
-    async def delete_user_session(self, user_id: str) -> bool:
+    async def delete_user_session(self, memory_id: str) -> bool:
         """Delete session"""
         result = await asyncio.to_thread(
             self.mongo_client[self.mongo_db]['memory_sessions'].delete_one,
-            {"user_id": user_id}
+            {"memory_id": memory_id}
         )
         success = result.deleted_count > 0
         if success:
-            logger.info(f"Deleted user {user_id} session")
+            logger.info(f"Deleted memory_id {memory_id} session")
         else:
-            logger.warning(f"Failed to delete user {user_id} session")
+            logger.warning(f"Failed to delete memory_id {memory_id} session")
         return success
 
     async def reset(self) -> bool:
         """Clear all session data
-        
+
         Returns:
             bool: Whether operation was successful
         """
@@ -109,14 +109,14 @@ class SessionManager(ManagerBase):
             logger.error(f"Error resetting session data: {str(e)}")
             return False
 
-    async def update_dialog_history(self, session_id: str, user_input: str, assistant_response: str) -> Optional[Dict]:
+    async def update_dialog_history(self, session_id: str, content: str, assistant_response: str) -> Optional[Dict]:
         """Update session dialog history
-        
+
         Args:
             session_id: Session ID
-            user_input: User input
+            content: User input content
             assistant_response: Assistant response
-            
+
         Returns:
             Optional[Dict]: Updated session information, returns None if update fails
         """
@@ -125,17 +125,15 @@ class SessionManager(ManagerBase):
                 self.mongo_client[self.mongo_db]['memory_sessions'].find_one_and_update,
                 {"_id": ObjectId(session_id)},
                 {
-                    "$push": {"dialog_history": {"user": user_input, "assistant": assistant_response}},
+                    "$push": {"dialog_history": {"user": content, "assistant": assistant_response}},
                     "$set": {"updated_at": datetime.now(timezone.utc)}
                 },
                 return_document=True
             )
-            
             if result:
                 logger.info(f"Updated dialog history for session {session_id}")
             else:
                 logger.warning(f"Failed to update dialog history for session {session_id}")
-                
             return result
         except Exception as e:
             logger.error(f"Error updating dialog history: {str(e)}")
@@ -143,10 +141,10 @@ class SessionManager(ManagerBase):
 
     async def create_dialog_chunk(self, session_id: str) -> Optional[str]:
         """Create new dialog chunk
-        
+
         Args:
             session_id: Session ID
-            
+
         Returns:
             Optional[str]: Chunk ID, returns None if creation fails
         """
@@ -176,12 +174,12 @@ class SessionManager(ManagerBase):
 
     async def update_session_chunks(self, session_id: str, chunk_id: str, recent_dialogs: List[Dict]) -> Optional[Dict]:
         """Update session chunk information
-        
+
         Args:
             session_id: Session ID
             chunk_id: Chunk ID
             recent_dialogs: Recent dialogs to keep in main table
-            
+
         Returns:
             Optional[Dict]: Updated session information, returns None if update fails
         """
@@ -211,10 +209,10 @@ class SessionManager(ManagerBase):
 
     async def get_dialog_chunk(self, chunk_id: str) -> Optional[Dict]:
         """Get dialog chunk
-        
+
         Args:
             chunk_id: Chunk ID
-            
+
         Returns:
             Optional[Dict]: Chunk information, returns None if not found
         """
@@ -223,41 +221,39 @@ class SessionManager(ManagerBase):
             {"_id": chunk_id}
         )
 
-    async def get_or_create_session(self, user_id: str) -> Dict:
-        """Get or create current session for user
-        
+    async def get_or_create_session(self, memory_id: str) -> Dict:
+        """Get or create current session for memory_id
+
         Args:
-            user_id: User ID
-            
+            memory_id: Memory ID
+
         Returns:
             Dict: Session information
         """
-        session = await self.get_session_by_user_id(user_id)
+        session = await self.get_session_by_memory_id(memory_id)
         if not session:
-            session = await self.create_session(user_id)
+            session = await self.create_session(memory_id)
         return session
 
-    async def get_session_by_user_id(self, user_id: str) -> Optional[Dict]:
-        """Get session by user ID
-        
+    async def get_session_by_memory_id(self, memory_id: str) -> Optional[Dict]:
+        """Get session by memory ID
+
         Args:
-            user_id: User ID
-            
+            memory_id: Memory ID
+
         Returns:
             Optional[Dict]: Session information, returns None if not found
         """
         return await asyncio.to_thread(
             self.mongo_client[self.mongo_db]['memory_sessions'].find_one,
-            {"user_id": user_id}
+            {"memory_id": memory_id}
         )
 
-    async def create_analysis_task(self, session: Dict, user_input: str, assistant_response: str, user_id: str, task_type: str, dialog_count: int) -> Optional[ObjectId]:
+    async def create_analysis_task(self, session: Dict, memory_id: str, task_type: str, dialog_count: int) -> Optional[ObjectId]:
         """Create analysis task record with deduplication
         Args:
             session: Session data
-            user_input: User input
-            assistant_response: Assistant response
-            user_id: User ID
+            memory_id: Memory ID
             task_type: Task type (e.g., 'user_memory', 'conversation_summary')
             dialog_count: Dialog count for uniqueness
         Returns:
@@ -269,14 +265,12 @@ class SessionManager(ManagerBase):
             {"session_id": session_id, "task_type": task_type, "dialog_count": dialog_count, "status": "pending"}
         )
         if exists:
-            logger.info(f"Analysis task already exists: session_id={session_id}, type={task_type}, dialog_count={dialog_count}, user_id={user_id}")
+            logger.info(f"Analysis task already exists: session_id={session_id}, type={task_type}, dialog_count={dialog_count}, memory_id={memory_id}")
             return None
         task_doc = {
             "session_id": session_id,
-            "user_id": user_id,
+            "memory_id": memory_id,
             "session_data": session,
-            "user_input": user_input,
-            "assistant_response": assistant_response,
             "task_type": task_type,
             "dialog_count": dialog_count,
             "status": "pending",
@@ -288,15 +282,15 @@ class SessionManager(ManagerBase):
                 self.mongo_client[self.mongo_db]["analysis_tasks"].insert_one,
                 task_doc
             )
-            logger.info(f"Created analysis task for session {session_id}, type={task_type}, dialog_count={dialog_count}, user_id={user_id}")
+            logger.info(f"Created analysis task for session {session_id}, type={task_type}, dialog_count={dialog_count}, memory_id={memory_id}")
             return task.inserted_id
         except Exception as e:
-            logger.error(f"Failed to create analysis task: session_id={session_id}, type={task_type}, user_id={user_id}, error={e}")
+            logger.error(f"Failed to create analysis task: session_id={session_id}, type={task_type}, memory_id={memory_id}, error={e}")
             raise AnalysisTaskError(f"Failed to create analysis task: {e}")
 
     async def complete_analysis_task(self, task_id: str) -> None:
         """Mark analysis task as completed
-        
+
         Args:
             session_id: Session ID
         """
@@ -314,7 +308,7 @@ class SessionManager(ManagerBase):
 
     async def fail_analysis_task(self, task_id: str, error: str) -> None:
         """Mark analysis task as failed
-        
+
         Args:
             session_id: Session ID
             error: Error message
@@ -334,7 +328,7 @@ class SessionManager(ManagerBase):
 
     async def get_pending_analysis_tasks(self) -> List[Dict]:
         """Get all pending analysis tasks
-        
+
         Returns:
             List[Dict]: List of pending tasks
         """

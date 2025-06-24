@@ -24,17 +24,17 @@ class ConversationAnalyzer(ManagerBase):
 
     async def analyze_user_profile(self, dialog_history: List[Dict], n: int = 5) -> str:
         """Analyze user profile
-        
+
         Args:
             dialog_history: List of conversation history records
             n: Number of recent conversations to process
-            
+
         Returns:
             str: User profile analysis result
         """
         recent_history = dialog_history[-n:]
         history_text = "\n".join([f"User: {d['user']}\nAssistant: {d['assistant']}" for d in recent_history])
-        
+
         analysis_prompt = f'''
 Please carefully read the following conversation history and automatically summarize and extract all important settings, rules, identity, interests, preferences, etc. that the user has for you. Please use imperative language like "You must..." or "You should..." to clearly express the behavioral norms and role settings you need to follow in subsequent conversations.
 
@@ -63,11 +63,11 @@ Conversation History:
 
     async def update_conversation_summary(self, session: Dict, n: int = 5) -> str:
         """Update conversation summary
-        
+
         Args:
             session: Session data
             n: Number of recent conversations to process
-            
+
         Returns:
             str: Updated conversation summary
         """
@@ -77,14 +77,14 @@ Conversation History:
             return ""
 
         summary = session.get("conversation_summary", "")
-        dialog_history = session["dialog_history"]
+        dialog_history = session.get("dialog_history", [])
         logger.info(f"Current conversation history length: {len(dialog_history)}")
-        
+
         # Get recent N rounds
         new_dialogs = dialog_history[-n:]
         new_dialogs_text = "\n".join([f"User: {d['user']}\nAssistant: {d['assistant']}" for d in new_dialogs])
         logger.info(f"Preparing conversation content for summary generation:\n{new_dialogs_text}")
-        
+
         # Construct summary prompt
         summary_prompt = f"""
 You are a professional conversation analysis assistant. Please directly generate a concise conversation summary without adding any prefixes or explanatory text.

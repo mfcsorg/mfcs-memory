@@ -15,7 +15,7 @@ async def main():
     memory_manager = MemoryManager(config)
 
     # Simulate conversation
-    user_id = "test_user_001"
+    memory_id = "test_user_001"
     dialogs = [
         ("Hello, I'd like to learn about Python programming", "Python is a simple yet powerful programming language. It has efficient data structures and can effectively implement object-oriented programming."),
         ("What are the main features of Python?", "Python's main features include: 1. Easy to learn 2. Free and open source 3. Portability 4. Rich library ecosystem 5. Object-oriented 6. Extensibility"),
@@ -25,20 +25,20 @@ async def main():
     ]
 
     # Save conversations
-    for user_input, assistant_response in dialogs:
+    for content, assistant_response in dialogs:
         # Update conversation
         await memory_manager.update(
-            user_id,
-            user_input,
+            memory_id,
+            content,
             assistant_response
         )
-        print(f"Saving conversation: {user_input[:20]}...")
+        print(f"Saving conversation: {content[:20]}...")
 
     # Get memory information
     query = "How to start Python programming?"
     memory_info = await memory_manager.get(
-        user_id,
-        query=query,
+        memory_id,
+        content=query,
         top_k=2
     )
 

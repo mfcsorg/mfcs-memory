@@ -27,26 +27,26 @@ MFCS Memory is an intelligent conversation memory management system that helps A
 
 ### MemoryManager Core Methods
 
-1. **get(user_id: str, query: Optional[str] = None, top_k: int = 2) -> str**
-   - Get current session information for specified user
+1. **get(memory_id: str, content: Optional[str] = None, top_k: int = 2) -> str**
+   - Get current session information for specified memory_id
    - Includes conversation summary and user memory summary
-   - Supports query-based relevant historical conversation retrieval (vector search)
+   - Supports content-based relevant historical conversation retrieval (vector search)
    - Returns formatted memory information
 
-2. **update(user_id: str, user_input: str, assistant_response: str) -> bool**
-   - Automatically gets or creates current session for user
+2. **update(memory_id: str, content: str, assistant_response: str) -> bool**
+   - Automatically gets or creates current session for memory_id
    - Updates conversation history
    - Automatically updates user memory summary every 3 rounds (LLM analysis)
    - Automatically updates session summary every 5 rounds (LLM analysis)
    - Automatically handles conversation chunking and vector storage
    - All analysis tasks run asynchronously and are recoverable on restart
 
-3. **delete(user_id: str) -> bool**
-   - Deletes all data for specified user (session + vector store)
+3. **delete(memory_id: str) -> bool**
+   - Deletes all data for specified memory_id (session + vector store)
    - Returns whether operation was successful
 
 4. **reset() -> bool**
-   - Resets all user records (clears all session and vector data)
+   - Resets all memory records (clears all session and vector data)
    - Returns whether operation was successful
 
 ## Installation
@@ -108,20 +108,20 @@ async def main():
     
     # Update conversation
     await memory_manager.update(
-        "user123",
+        "memory_123",
         "Hello, I want to learn about Python programming",
         "Python is a simple yet powerful programming language..."
     )
     
     # Get memory information
     memory_info = await memory_manager.get(
-        "user123",
-        query="How to start Python programming?",
+        "memory_123",
+        content="How to start Python programming?",
         top_k=2
     )
     
-    # Delete user data
-    await memory_manager.delete("user123")
+    # Delete memory data
+    await memory_manager.delete("memory_123")
     
     # Reset all data
     await memory_manager.reset()

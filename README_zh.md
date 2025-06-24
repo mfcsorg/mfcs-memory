@@ -27,26 +27,26 @@ MFCS Memory 是一个智能对话记忆管理系统，能够帮助AI助手记住
 
 ### MemoryManager 核心方法
 
-1. **get(user_id: str, query: Optional[str] = None, top_k: int = 2) -> str**
-   - 获取指定用户当前会话信息
+1. **get(memory_id: str, content: Optional[str] = None, top_k: int = 2) -> str**
+   - 获取指定记忆ID当前会话信息
    - 包含会话摘要和用户记忆摘要
-   - 支持基于查询的相关历史对话检索（向量搜索）
+   - 支持基于内容的相关历史对话检索（向量搜索）
    - 返回格式化记忆信息
 
-2. **update(user_id: str, user_input: str, assistant_response: str) -> bool**
-   - 自动获取或创建用户当前会话
+2. **update(memory_id: str, content: str, assistant_response: str) -> bool**
+   - 自动获取或创建当前记忆ID的会话
    - 更新对话历史
    - 每3轮自动异步分析并更新用户记忆（LLM分析）
    - 每5轮自动异步分析并更新会话摘要（LLM分析）
    - 自动处理对话分块与向量存储
    - 所有分析任务异步执行，支持重启恢复
 
-3. **delete(user_id: str) -> bool**
-   - 删除指定用户所有数据（会话+向量存储）
+3. **delete(memory_id: str) -> bool**
+   - 删除指定记忆ID所有数据（会话+向量存储）
    - 返回操作是否成功
 
 4. **reset() -> bool**
-   - 重置所有用户记录（清空所有会话和向量数据）
+   - 重置所有记忆记录（清空所有会话和向量数据）
    - 返回操作是否成功
 
 ## 安装
@@ -108,20 +108,20 @@ async def main():
     
     # 更新对话
     await memory_manager.update(
-        "user123",
+        "memory_123",
         "你好，我想了解一下Python编程",
         "Python是一种简单易学且功能强大的编程语言..."
     )
     
     # 获取记忆信息
     memory_info = await memory_manager.get(
-        "user123",
-        query="如何开始Python编程？",
+        "memory_123",
+        content="如何开始Python编程？",
         top_k=2
     )
     
-    # 删除用户数据
-    await memory_manager.delete("user123")
+    # 删除记忆数据
+    await memory_manager.delete("memory_123")
     
     # 重置所有数据
     await memory_manager.reset()

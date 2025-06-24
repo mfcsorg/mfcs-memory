@@ -63,18 +63,18 @@ class VectorStore(ManagerBase):
             logger.error(f"Error resetting vector data: {str(e)}")
             return False
 
-    async def delete_user_dialogs(self, user_id: str) -> bool:
-        """Delete all dialog vectors related to a user"""
+    async def delete_user_dialogs(self, memory_id: str) -> bool:
+        """Delete all dialog vectors related to a memory_id"""
         try:
             await asyncio.to_thread(
                 self.qdrant_client.delete,
                 collection_name=self.qdrant_collection,
-                points_selector={"filter": {"must": [{"key": "user_id", "match": {"value": user_id}}]}}
+                points_selector={"filter": {"must": [{"key": "memory_id", "match": {"value": memory_id}}]}}
             )
-            logger.info(f"Deleted all data for user {user_id}")
+            logger.info(f"Deleted all data for memory_id {memory_id}")
             return True
         except Exception as e:
-            logger.error(f"Error deleting user data: {str(e)}")
+            logger.error(f"Error deleting memory_id data: {str(e)}")
             return False
 
     async def search_dialog_with_chunk(self, session_id: str, query: str, top_k: int = 2) -> List[Dict]:
@@ -122,14 +122,14 @@ class VectorStore(ManagerBase):
                 
         return relevant_dialogs
 
-    async def save_dialog_with_chunk(self, session_id: str, user: str, assistant: str, user_id: Optional[str] = None) -> None:
+    async def save_dialog_with_chunk(self, session_id: str, user: str, assistant: str, memory_id: Optional[str] = None) -> None:
         """Save dialog to vector store, supporting chunked storage
         
         Args:
             session_id: Session ID
             user: User input
             assistant: Assistant response
-            user_id: User ID
+            memory_id: Memory ID
         """
         try:
             # Get session information
@@ -183,7 +183,7 @@ class VectorStore(ManagerBase):
                         vector=embedding,
                         payload={
                             "session_id": str(session["_id"]),
-                            "user_id": user_id,
+                            "memory_id": memory_id,
                             "chunk_id": str(current_chunk_id) if current_chunk_id else None,
                             "message_index": message_index,
                             "short_text": dialog_text,
